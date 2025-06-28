@@ -301,6 +301,8 @@ This implementation is based on the methodology described in:
 
 The full research paper is included in this repository at `theses/Uchida_Negishi_2025.md`.
 
+『CEFR-J Wordlist Version 1.6』 東京外国語大学投野由紀夫研究室. （URL: http://www.cefr-j.org/download.html より 2022 年 2 月ダウンロード）
+
 ### Implementation
 
 This PyCEFRizer (CEFR-J Level Estimator) implementation was designed and developed using [Claude Code](https://claude.ai/code), Anthropic's AI coding assistant. The implementation faithfully follows the CVLA3 methodology described in the research paper, including:
