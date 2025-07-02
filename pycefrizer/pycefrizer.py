@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import spacy
 from spacy.language import Language
@@ -218,6 +218,59 @@ class PyCEFRizer:
         kwargs.update(json_kwargs)
         
         return json.dumps(result, **kwargs)
+    
+    def get_unused_words(self, level: str, text: str) -> Dict[str, str]:
+        """Get words from a specific CEFR level that are NOT used in the text.
+        
+        This method finds all words at the specified CEFR level in the dictionary
+        that do not appear in the provided text. Useful for identifying vocabulary
+        that could be introduced at a specific level.
+        
+        Args:
+            level: CEFR level to search (A1, A2, B1, B2, C1, C2)
+            text: English text to analyze
+            
+        Returns:
+            Dictionary mapping unused words to their parts of speech
+            Example: {"cloak": "noun", "exterior": "noun", ...}
+            
+        Raises:
+            ValueError: If invalid CEFR level is provided
+            TextLengthError: If input doesn't meet length requirements
+        """
+        # Validate CEFR level
+        valid_levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+        if level not in valid_levels:
+            raise ValueError(f"Invalid CEFR level: {level}. Must be one of {valid_levels}")
+        
+        # Validate input
+        self.validate_input(text)
+        
+        # Process text with spaCy to get all words used
+        logger.info(f"Processing text to find unused {level} words")
+        doc = self.nlp(text)
+        
+        # Collect all words used in the text (both original and lemma forms)
+        used_words = set()
+        for token in doc:
+            if not token.is_punct and not token.is_space:
+                used_words.add(token.text.lower())
+                used_words.add(token.lemma_.lower())
+        
+        # Find all words at the specified level that are NOT in the text
+        unused_words = {}
+        
+        for word, info in self.resources.word_lookup.items():
+            # Check if this word is at the specified level
+            if info.get('CEFR') == level:
+                # Check if the base form is the word itself (to avoid duplicates)
+                if info.get('base_form') == word:
+                    # Check if this word was NOT used in the text
+                    if word not in used_words:
+                        unused_words[word] = info.get('pos', 'unknown')
+        
+        logger.info(f"Found {len(unused_words)} unused {level} words")
+        return unused_words
     
     def get_detailed_analysis(self, text: str) -> Dict[str, Union[str, Dict]]:
         """Get detailed analysis including raw metric values.

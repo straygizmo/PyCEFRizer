@@ -9,6 +9,27 @@ PyCEFRizer (CEFR-J Level Estimator) is a Python-based text analyzer that estimat
 - Backend: Python with spaCy 3.7.2 (en_core_web_sm) and textstat 0.7.4
 - Metrics: CVV1, BperA, POStypes, ARI, AvrDiff, AvrFreqRank, VperSent, LenNP
 
+## Python Package Management
+**Use `uv` for all Python package management and virtual environment operations.**
+
+### Installation with uv:
+```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment
+uv venv
+
+# Activate virtual environment
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+uv pip install spacy==3.7.2 textstat==0.7.4 pytest
+
+# Download spaCy model
+uv run python -m spacy download en_core_web_sm
+```
+
 ## Architecture Design
 
 ### 1. Core Modules
@@ -171,3 +192,31 @@ print(result)
 - Local deployment option
 - Performance optimization for large texts
 - Additional output formats (CSV, detailed report)
+
+### 8. Additional Methods
+
+#### `get_unused_words(level, text)` - Find unused vocabulary from a specific CEFR level
+This method identifies words from the dictionary at a specific CEFR level that are NOT used in the provided text. 
+Useful for:
+- Identifying vocabulary that could be introduced to learners
+- Finding gaps in text coverage for specific levels
+- Educational material development
+
+```python
+analyzer = PyCEFRizer()
+unused_c1 = analyzer.get_unused_words("C1", "The cat sat on the mat.")
+print(unused_c1)  # Output: {"cloak": "noun", "exterior": "noun", ...}
+```
+
+Parameters:
+- `level`: CEFR level to search (A1, A2, B1, B2, C1, C2)
+- `text`: English text to analyze (10-10000 words)
+
+Returns:
+- Dictionary mapping unused words to their parts of speech
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

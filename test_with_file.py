@@ -52,6 +52,26 @@ def main():
             json.dump(detailed, f, indent=2)
         print(f"\nFull analysis saved to: {output_file}")
         
+        # Test get_unused_words method
+        print("\n" + "="*60)
+        print("Testing get_unused_words method:")
+        print("="*60)
+        
+        # Test for each CEFR level
+        levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+        for level in levels:
+            unused_words = analyzer.get_unused_words(level, text)
+            print(f"\nUnused {level} words: {len(unused_words)} total")
+            
+            # Show first 5 words as examples
+            if unused_words:
+                examples = list(unused_words.items())[:5]
+                print(f"  Examples:")
+                for word, pos in examples:
+                    print(f"    - {word} ({pos})")
+                if len(unused_words) > 5:
+                    print(f"    ... and {len(unused_words) - 5} more")
+        
     except Exception as e:
         print(f"Error: {e}")
 
