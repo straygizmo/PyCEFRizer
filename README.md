@@ -180,6 +180,26 @@ result = analyzer.analyze("beautiful")
 print(result)  # Output: {"CEFR_Level": "B1"}
 ```
 
+### Finding Unused Vocabulary
+
+PyCEFRizer can identify words from the dictionary at a specific CEFR level that are NOT used in the provided text. This is useful for educational material development and vocabulary gap analysis:
+
+```python
+from pycefrizer import PyCEFRizer
+
+analyzer = PyCEFRizer()
+
+# Find unused C1 vocabulary in a simple text
+unused_c1 = analyzer.get_unused_words("C1", "The cat sat on the mat.")
+print(unused_c1)  # Output: {"cloak": "noun", "exterior": "noun", ...}
+
+# Find unused B2 vocabulary
+text = "This is a comprehensive analysis of modern technology."
+unused_b2 = analyzer.get_unused_words("B2", text)
+print(f"Number of unused B2 words: {len(unused_b2)}")
+# Shows B2 words not used in the text
+```
+
 Command line usage:
 ```bash
 # Look up a single word
