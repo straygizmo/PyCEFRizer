@@ -1,0 +1,91 @@
+{
+  "mcpServers": {
+    "pycefrizer": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "pycefrizer.mcp_server"],
+      "description": "PyCEFRizer MCP Server - CEFR-J Level Estimator for English text",
+      "env": {},
+      "tools": {
+        "analyze_text": {
+          "description": "Analyze English text and return CEFR-J level assessment with metric scores",
+          "parameters": {
+            "text": {
+              "type": "string",
+              "description": "English text to analyze (10-10,000 words)"
+            }
+          }
+        },
+        "get_word_cefr_level": {
+          "description": "Get the CEFR level of a single English word",
+          "parameters": {
+            "word": {
+              "type": "string",
+              "description": "English word to look up"
+            }
+          }
+        },
+        "get_unused_words": {
+          "description": "Find unused vocabulary from a specific CEFR level in the given text",
+          "parameters": {
+            "level": {
+              "type": "string",
+              "description": "CEFR level to search (A1, A2, B1, B2, C1, C2)"
+            },
+            "text": {
+              "type": "string",
+              "description": "English text to analyze"
+            }
+          }
+        },
+        "get_detailed_analysis": {
+          "description": "Get detailed analysis including raw metric values and processed scores",
+          "parameters": {
+            "text": {
+              "type": "string",
+              "description": "English text to analyze (10-10,000 words)"
+            }
+          }
+        },
+        "analyze_file": {
+          "description": "Analyze text from a file and return CEFR-J level assessment",
+          "parameters": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to text file to analyze"
+            }
+          }
+        },
+        "batch_analyze": {
+          "description": "Analyze multiple texts and return CEFR-J levels for each",
+          "parameters": {
+            "texts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of English texts to analyze"
+            }
+          }
+        },
+        "get_cefr_statistics": {
+          "description": "Get statistics about CEFR level distribution in the text",
+          "parameters": {
+            "text": {
+              "type": "string",
+              "description": "English text to analyze"
+            }
+          }
+        },
+        "get_cefr_words": {
+          "description": "Get all unique words (base forms) from a specific CEFR level with their parts of speech",
+          "parameters": {
+            "level": {
+              "type": "string",
+              "description": "CEFR level (A1, A2, B1, B2, C1, C2)"
+            }
+          }
+        }
+      }
+    }
+  }
+}
