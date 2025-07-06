@@ -5,13 +5,15 @@ Provides MCP tools for analyzing English text difficulty levels
 """
 
 import asyncio
+import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
-from mcp import Server, Tool
+from mcp.server import Server
+from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, ToolResult
+from mcp.types import Tool, TextContent
 
 from pycefrizer import PyCEFRizer
 from pycefrizer.exceptions import PyCEFRizerError
@@ -27,7 +29,143 @@ server = Server("pycefrizer")
 analyzer = PyCEFRizer()
 
 
-@server.tool()
+@server.list_tools()
+async def handle_list_tools() -> List[Tool]:
+    """List available tools"""
+    return [
+        Tool(
+            name="analyze_text",
+            description="Analyze English text and return CEFR-J level assessment with metric scores",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "English text to analyze (10-10,000 words)"
+                    }
+                },
+                "required": ["text"]
+            }
+        ),
+        Tool(
+            name="get_word_cefr_level",
+            description="Get the CEFR level of a single English word",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "word": {
+                        "type": "string",
+                        "description": "English word to look up"
+                    }
+                },
+                "required": ["word"]
+            }
+        ),
+        Tool(
+            name="get_unused_words",
+            description="Find unused vocabulary from a specific CEFR level in the given text",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "CEFR level to search (A1, A2, B1, B2, C1, C2)",
+                        "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "English text to analyze"
+                    }
+                },
+                "required": ["level", "text"]
+            }
+        ),
+        Tool(
+            name="get_detailed_analysis",
+            description="Get detailed analysis including raw metric values and processed scores",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "English text to analyze (10-10,000 words)"
+                    }
+                },
+                "required": ["text"]
+            }
+        ),
+        Tool(
+            name="analyze_file",
+            description="Analyze text from a file and return CEFR-J level assessment",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Path to text file to analyze"
+                    }
+                },
+                "required": ["file_path"]
+            }
+        ),
+        Tool(
+            name="get_available_words",
+            description="Get all available words in the dictionary for a specific CEFR level",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "CEFR level to retrieve words for",
+                        "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]
+                    }
+                },
+                "required": ["level"]
+            }
+        ),
+        Tool(
+            name="get_cefr_words",
+            description="Get all available words from the dictionary grouped by CEFR levels",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        )
+    ]
+
+
+@server.call_tool()
+async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+    """Handle tool calls"""
+    try:
+        if name == "analyze_text":
+            result = await analyze_text(arguments.get("text", ""))
+        elif name == "get_word_cefr_level":
+            result = await get_word_cefr_level(arguments.get("word", ""))
+        elif name == "get_unused_words":
+            result = await get_unused_words(
+                arguments.get("level", ""),
+                arguments.get("text", "")
+            )
+        elif name == "get_detailed_analysis":
+            result = await get_detailed_analysis(arguments.get("text", ""))
+        elif name == "analyze_file":
+            result = await analyze_file(arguments.get("file_path", ""))
+        elif name == "get_available_words":
+            result = await get_available_words(arguments.get("level", ""))
+        elif name == "get_cefr_words":
+            result = await get_cefr_words()
+        else:
+            result = f"Unknown tool: {name}"
+        
+        return [TextContent(type="text", text=result)]
+    
+    except Exception as e:
+        logger.error(f"Error in tool {name}: {str(e)}")
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
 async def analyze_text(text: str) -> str:
     """
     Analyze English text and return CEFR-J level assessment with metric scores.
@@ -48,7 +186,6 @@ async def analyze_text(text: str) -> str:
         return f"Unexpected error: {str(e)}"
 
 
-@server.tool()
 async def get_word_cefr_level(word: str) -> str:
     """
     Get the CEFR level of a single English word.
@@ -67,7 +204,6 @@ async def get_word_cefr_level(word: str) -> str:
         return f"Error: {str(e)}"
 
 
-@server.tool()
 async def get_unused_words(level: str, text: str) -> str:
     """
     Find unused vocabulary from a specific CEFR level in the given text.
@@ -80,7 +216,6 @@ async def get_unused_words(level: str, text: str) -> str:
         JSON string mapping unused words to their parts of speech
     """
     try:
-        import json
         result = analyzer.get_unused_words(level, text)
         return json.dumps(result, ensure_ascii=False, indent=2)
     except PyCEFRizerError as e:
@@ -90,7 +225,6 @@ async def get_unused_words(level: str, text: str) -> str:
         return f"Error: {str(e)}"
 
 
-@server.tool()
 async def get_detailed_analysis(text: str) -> str:
     """
     Get detailed analysis including raw metric values and processed scores.
@@ -99,19 +233,18 @@ async def get_detailed_analysis(text: str) -> str:
         text: English text to analyze (10-10,000 words)
         
     Returns:
-        JSON string with detailed analysis including raw metrics and CEFR scores
+        JSON string with detailed metrics and scores
     """
     try:
         result = analyzer.get_detailed_analysis(text)
-        return result
+        return json.dumps(result, ensure_ascii=False, indent=2)
     except PyCEFRizerError as e:
-        return f"Error analyzing text: {str(e)}"
+        return f"Error: {str(e)}"
     except Exception as e:
         logger.error(f"Unexpected error in get_detailed_analysis: {str(e)}")
         return f"Unexpected error: {str(e)}"
 
 
-@server.tool()
 async def analyze_file(file_path: str) -> str:
     """
     Analyze text from a file and return CEFR-J level assessment.
@@ -137,152 +270,93 @@ async def analyze_file(file_path: str) -> str:
         except Exception as e:
             return f"Error reading file: {str(e)}"
         
-        # Analyze text
+        # Analyze the text
         result = analyzer.analyze(text)
         return result
+        
+    except PyCEFRizerError as e:
+        return f"Error analyzing file: {str(e)}"
     except Exception as e:
         logger.error(f"Unexpected error in analyze_file: {str(e)}")
         return f"Unexpected error: {str(e)}"
 
 
-@server.tool()
-async def batch_analyze(texts: list[str]) -> str:
+async def get_available_words(level: str) -> str:
     """
-    Analyze multiple texts and return CEFR-J levels for each.
+    Get all available words in the dictionary for a specific CEFR level.
     
     Args:
-        texts: List of English texts to analyze
+        level: CEFR level to retrieve words for (A1, A2, B1, B2, C1, C2)
         
     Returns:
-        JSON string with results for each text
+        JSON string listing all words at the specified level
     """
     try:
-        import json
-        results = []
+        # Get all words at the specified level
+        all_words = analyzer.word_lookup_manager.word_lookup
+        level_words = []
         
-        for i, text in enumerate(texts):
-            try:
-                result_json = analyzer.analyze(text)
-                result_dict = json.loads(result_json)
-                results.append({
-                    "index": i,
-                    "success": True,
-                    "result": result_dict
-                })
-            except Exception as e:
-                results.append({
-                    "index": i,
-                    "success": False,
-                    "error": str(e)
-                })
+        for word, entries in all_words.items():
+            for entry in entries:
+                if entry.get('cefr', '').upper() == level.upper():
+                    level_words.append({
+                        'word': word,
+                        'pos': entry.get('pos', 'unknown')
+                    })
         
-        return json.dumps(results, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Unexpected error in batch_analyze: {str(e)}")
-        return f"Unexpected error: {str(e)}"
-
-
-@server.tool()
-async def get_cefr_statistics(text: str) -> str:
-    """
-    Get statistics about CEFR level distribution in the text.
-    
-    Args:
-        text: English text to analyze
-        
-    Returns:
-        JSON string with word count by CEFR level and percentage distribution
-    """
-    try:
-        import json
-        from collections import Counter
-        
-        # Process text with spaCy
-        doc = analyzer.nlp(text)
-        
-        # Count words by CEFR level
-        level_counter = Counter()
-        total_content_words = 0
-        unknown_words = []
-        
-        for token in doc:
-            if token.is_alpha and not token.is_stop:
-                word = token.text.lower()
-                level = analyzer.get_word_cefr_level(word)
-                
-                if level and level != "Not found":
-                    level_counter[level] += 1
-                    total_content_words += 1
-                else:
-                    unknown_words.append(word)
-                    total_content_words += 1
-        
-        # Calculate percentages
-        percentages = {}
-        for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:
-            count = level_counter.get(level, 0)
-            percentages[level] = {
-                "count": count,
-                "percentage": round(count / total_content_words * 100, 2) if total_content_words > 0 else 0
-            }
+        # Sort words alphabetically
+        level_words.sort(key=lambda x: x['word'])
         
         result = {
-            "total_content_words": total_content_words,
-            "level_distribution": percentages,
-            "unknown_words_count": len(unknown_words),
-            "unknown_words_sample": unknown_words[:10]  # First 10 unknown words
+            'level': level.upper(),
+            'total_words': len(level_words),
+            'words': level_words
         }
         
         return json.dumps(result, ensure_ascii=False, indent=2)
+        
     except Exception as e:
-        logger.error(f"Error in get_cefr_statistics: {str(e)}")
+        logger.error(f"Error in get_available_words: {str(e)}")
         return f"Error: {str(e)}"
 
 
-@server.tool()
-async def get_cefr_words(level: str) -> str:
+async def get_cefr_words() -> str:
     """
-    Get all unique words (base forms) from a specific CEFR level with their parts of speech.
+    Get all available words from the dictionary grouped by CEFR levels.
     
-    Args:
-        level: CEFR level (A1, A2, B1, B2, C1, C2)
-        
     Returns:
-        JSON string with list of unique base_form and pos pairs for the specified level
+        JSON string with words grouped by CEFR levels
     """
     try:
-        import json
+        # Initialize result structure
+        cefr_levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+        result = {level: [] for level in cefr_levels}
         
-        # Validate level
-        valid_levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-        if level not in valid_levels:
-            return f"Error: Invalid CEFR level '{level}'. Must be one of: {', '.join(valid_levels)}"
+        # Get all words from the lookup
+        all_words = analyzer.word_lookup_manager.word_lookup
         
-        # Load word lookup data
-        word_lookup = analyzer.resources.word_lookup
+        # Group words by CEFR level
+        for word, entries in all_words.items():
+            for entry in entries:
+                level = entry.get('cefr', '').upper()
+                if level in cefr_levels:
+                    result[level].append({
+                        'word': word,
+                        'pos': entry.get('pos', 'unknown')
+                    })
         
-        # Create a set to store unique (base_form, pos) pairs
-        unique_words = set()
+        # Sort words in each level alphabetically
+        for level in cefr_levels:
+            result[level].sort(key=lambda x: x['word'])
         
-        # Iterate through all words and collect unique base forms for the specified level
-        for word_data in word_lookup.values():
-            if word_data.get('CEFR') == level:
-                base_form = word_data.get('base_form', '')
-                pos = word_data.get('pos', '')
-                if base_form and pos:
-                    unique_words.add((base_form, pos))
+        # Add summary statistics
+        summary = {
+            'total_words': sum(len(words) for words in result.values()),
+            'words_by_level': {level: len(words) for level, words in result.items()},
+            'words': result
+        }
         
-        # Convert to list of dictionaries for JSON serialization
-        result = [
-            {"base_form": base_form, "pos": pos} 
-            for base_form, pos in sorted(unique_words)
-        ]
-        
-        return json.dumps({
-            "level": level,
-            "total_unique_words": len(result),
-            "words": result
-        }, ensure_ascii=False, indent=2)
+        return json.dumps(summary, ensure_ascii=False, indent=2)
         
     except Exception as e:
         logger.error(f"Error in get_cefr_words: {str(e)}")
@@ -295,11 +369,19 @@ async def main():
     
     try:
         # Run the server using stdio transport
-        async with stdio_server() as streams:
+        async with stdio_server() as (read_stream, write_stream):
             await server.run(
-                streams.read_stream,
-                streams.write_stream,
-                server.create_initialization_options()
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="pycefrizer",
+                    server_version="0.1.0",
+                    capabilities={
+                        "tools": {},
+                        "resources": {},
+                        "prompts": {}
+                    }
+                )
             )
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
