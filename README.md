@@ -214,6 +214,63 @@ uv run pycefrizer -w "xyz123"
 # Output: (empty line)
 ```
 
+## MCP Server
+
+PyCEFRizer includes an MCP (Model Context Protocol) server that allows AI assistants to analyze text difficulty levels through a standardized interface.
+
+### MCP Server Configuration
+
+To use PyCEFRizer as an MCP server, add the following configuration to your `.mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "pycefrizer": {
+      "command": "uv",
+      "args": ["run", "pycefrizer-mcp"],
+      "cwd": "/path/to/PyCEFRizer"
+    }
+  }
+}
+```
+
+Alternative configuration using Python module directly:
+
+```json
+{
+  "mcpServers": {
+    "pycefrizer": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "pycefrizer.mcp_server"],
+      "cwd": "/path/to/PyCEFRizer"
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+The MCP server provides the following tools:
+
+- **analyze_text**: Analyze English text and return CEFR-J level assessment with metric scores
+- **get_word_cefr_level**: Get the CEFR level of a single English word
+- **get_unused_words**: Find unused vocabulary from a specific CEFR level in the given text
+- **get_detailed_analysis**: Get detailed analysis including raw metric values and processed scores
+- **analyze_file**: Analyze text from a file and return CEFR-J level assessment
+- **get_available_words**: Get all available words in the dictionary for a specific CEFR level
+- **get_cefr_words**: Get all available words from the dictionary grouped by CEFR levels
+
+### Running MCP Server Manually
+
+You can also run the MCP server manually for testing:
+
+```bash
+# With uv
+uv run pycefrizer-mcp
+
+# Or using Python module
+uv run python -m pycefrizer.mcp_server
+```
 
 ## CEFR-J Levels
 
