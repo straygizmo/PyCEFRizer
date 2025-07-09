@@ -17,7 +17,28 @@ PyCEFRizer analyzes English text (10-10,000 words) and estimates its difficulty 
 
 ## Installation
 
-### Install from GitHub (Recommended)
+### Installation with uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package manager that provides better performance and reliability.
+
+1. **Install uv** (if not already installed):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. **Clone and setup**:
+```bash
+git clone https://github.com/straygizmo/PyCEFRizer.git
+cd PyCEFRizer
+uv sync
+```
+
+3. **Install spaCy model**:
+```bash
+uv run python -m spacy download en_core_web_sm
+```
+
+### Install from GitHub
 
 ```bash
 pip install git+https://github.com/straygizmo/PyCEFRizer.git
@@ -49,27 +70,6 @@ pip install -e .
 3. Download spaCy model:
 ```bash
 python -m spacy download en_core_web_sm
-```
-
-### Installation with uv (Recommended)
-
-[uv](https://github.com/astral-sh/uv) is a fast Python package manager that provides better performance and reliability.
-
-1. **Install uv** (if not already installed):
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-2. **Clone and setup**:
-```bash
-git clone https://github.com/straygizmo/PyCEFRizer.git
-cd PyCEFRizer
-uv sync
-```
-
-3. **Install spaCy model**:
-```bash
-uv pip install --python .venv/bin/python en-core-web-sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 ```
 
 ## Usage
@@ -123,19 +123,18 @@ print(detailed)
 After installation, you can use the `pycefrizer` command:
 
 ```bash
-# Analyze text directly
+# With uv (if installed with uv)
+uv run pycefrizer "Your English text here..."
+uv run pycefrizer -f input.txt
+uv run pycefrizer -f input.txt -o output.json
+uv run pycefrizer -d "Your text here..."
+cat article.txt | uv run pycefrizer
+
+# With standard pip installation
 pycefrizer "Your English text here..."
-
-# Analyze text from file
 pycefrizer -f input.txt
-
-# Save output to file
 pycefrizer -f input.txt -o output.json
-
-# Get detailed analysis with raw metrics
 pycefrizer -d "Your text here..."
-
-# Pipe text from another command
 cat article.txt | pycefrizer
 ```
 
@@ -202,36 +201,19 @@ print(f"Number of unused B2 words: {len(unused_b2)}")
 
 Command line usage:
 ```bash
-# Look up a single word
+# With uv
+uv run pycefrizer -w "beautiful"
+# Output: B1
+
+# With standard installation
 pycefrizer -w "beautiful"
 # Output: B1
 
 # Word not in dictionary returns empty
-pycefrizer -w "xyz123"
+uv run pycefrizer -w "xyz123"
 # Output: (empty line)
 ```
 
-### Usage with uv
-
-If you installed with uv, prefix commands with `uv run`:
-
-```bash
-# Run example analysis
-uv run python example_usage.py
-
-# Analyze custom text
-uv run python analyze_text.py "Your English text here..."
-
-# Test with the provided test data
-uv run python test_with_file.py
-
-# Interactive Python session
-uv run python
->>> from pycefrizer import PyCEFRizer
->>> analyzer = PyCEFRizer()
->>> result = analyzer.analyze("Your text here...")
->>> print(result)
-```
 
 ## CEFR-J Levels
 
@@ -263,16 +245,50 @@ Note: The included data files contain sample data. For production use, you shoul
 
 ## Development
 
+### Setting up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/straygizmo/PyCEFRizer.git
+cd PyCEFRizer
+
+# Create virtual environment and install dependencies
+uv sync
+
+# Install spaCy model
+uv run python -m spacy download en_core_web_sm
+
+# Run tests
+uv run pytest
+```
+
+### Adding Dependencies
+
+```bash
+# Add a new dependency
+uv add package-name
+
+# Add a development dependency
+uv add --dev package-name
+```
+
+### Updating Dependencies
+
+```bash
+# Update all dependencies
+uv sync --upgrade
+
+# Update a specific package
+uv add package-name@latest
+```
+
 ### Building the Package
 
 To build the package for distribution:
 
 ```bash
-# Install build tools
-pip install build
-
-# Build the package
-python -m build
+# Build using uv
+uv build
 
 # This creates dist/ directory with:
 # - pycefrizer-3.0.0.tar.gz (source distribution)
@@ -282,33 +298,11 @@ python -m build
 ### Publishing to PyPI
 
 ```bash
-# Install twine for secure upload
-pip install twine
+# Publish to TestPyPI first (for testing)
+uv publish --repository testpypi
 
-# Upload to TestPyPI first (for testing)
-twine upload --repository testpypi dist/*
-
-# Upload to PyPI
-twine upload dist/*
-```
-
-### Adding Dependencies
-
-With standard pip:
-```bash
-pip install package-name
-```
-
-With uv:
-```bash
-uv add package-name
-```
-
-### Updating Dependencies
-
-With uv:
-```bash
-uv sync --upgrade
+# Publish to PyPI
+uv publish
 ```
 
 ## Credits
